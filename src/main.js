@@ -5,17 +5,21 @@ const SCALE = 3;
 const TS = TILE * SCALE;
 
 const MAP = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ];
 
 const COLS = MAP[0].length;
@@ -89,6 +93,7 @@ class GameScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, MUNDO_W, MUNDO_H);
     this.cameras.main.startFollow(this.jogador, true, 0.1, 0.1);
+    this.cameras.main.setZoom(1);
     this.physics.world.setBounds(0, 0, MUNDO_W, MUNDO_H);
 
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -182,46 +187,50 @@ class GameScene extends Phaser.Scene {
     this.cenaFinal = true;
     this.jogador.setVelocity(0);
 
+    this.cameras.main.fadeOut(1500, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start('FinalScene');
+    });
+  }
+}
+
+// ← GameScene fechada aqui
+
+class FinalScene extends Phaser.Scene {
+  constructor() { super('FinalScene'); }
+
+  create() {
     const cx = this.cameras.main.width / 2;
     const cy = this.cameras.main.height / 2;
 
-    const fundo = this.add.rectangle(cx, cy, this.cameras.main.width, this.cameras.main.height, 0x000000, 0)
-      .setScrollFactor(0).setDepth(50);
+    this.cameras.main.setBackgroundColor('#000000');
 
-    this.tweens.add({
-      targets: fundo,
-      alpha: 1,
-      duration: 1500,
-      ease: 'Linear',
-      onComplete: () => {
-        this.add.text(cx, cy - 30, 'SINAL RESTABELECIDO', {
-          fontSize: '24px', fontFamily: 'Courier New', color: '#00ff88',
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
+    this.add.text(cx, cy - 30, 'SINAL RESTABELECIDO', {
+      fontSize: '24px', fontFamily: 'Courier New', color: '#00ff88',
+    }).setOrigin(0.5);
 
-        this.add.text(cx, cy + 20, '...', {
-          fontSize: '18px', fontFamily: 'Courier New', color: '#ffffff',
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
+    this.add.text(cx, cy + 20, '...', {
+      fontSize: '18px', fontFamily: 'Courier New', color: '#ffffff',
+    }).setOrigin(0.5);
 
-        this.time.delayedCall(1500, () => {
-          this.add.text(cx, cy + 60, 'ORIGEM DESCONHECIDA', {
-            fontSize: '14px', fontFamily: 'Courier New', color: '#ff4444',
-          }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
-        });
-      }
+    this.time.delayedCall(1500, () => {
+      this.add.text(cx, cy + 60, 'ORIGEM DESCONHECIDA', {
+        fontSize: '14px', fontFamily: 'Courier New', color: '#ff4444',
+      }).setOrigin(0.5);
     });
   }
 }
 
 const config = {
   type: Phaser.AUTO,
-  width: window.innerWidth,
-  height: window.innerHeight,
+  width: MUNDO_W,
+  height: MUNDO_H,
   backgroundColor: '#050a05',
   physics: {
     default: 'arcade',
     arcade: { gravity: { y: 0 }, debug: false },
   },
-  scene: GameScene,
+  scene: [GameScene, FinalScene],
 };
 
 new Phaser.Game(config);
