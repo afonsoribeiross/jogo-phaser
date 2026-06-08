@@ -4,7 +4,15 @@ const TILE = 16;
 const SCALE = 3;
 const TS = TILE * SCALE;
 
-const MAP = [
+const FRAME_CHAO    = 0;
+const FRAME_PAREDE  = 2;
+const FRAME_JOGADOR = 84;
+
+// ═══════════════════════════════
+// SALA 1
+// ═══════════════════════════════
+
+const MAP1 = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
   [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
   [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -22,22 +30,12 @@ const MAP = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ];
 
-const COLS = MAP[0].length;
-const ROWS = MAP.length;
-const MUNDO_W = COLS * TS;
-const MUNDO_H = ROWS * TS;
-
-const FRAME_CHAO    = 0;
-const FRAME_PAREDE  = 2;
-const FRAME_JOGADOR = 84;
-
 class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
 
   preload() {
     this.load.spritesheet('tiles', '/tilemap_packed.png', {
-      frameWidth: TILE,
-      frameHeight: TILE,
+      frameWidth: TILE, frameHeight: TILE,
     });
   }
 
@@ -49,11 +47,15 @@ class GameScene extends Phaser.Scene {
     this.geradorPos  = null;
     this.portaPos    = null;
 
-    MAP.forEach((row, ry) => {
+    const COLS = MAP1[0].length;
+    const ROWS = MAP1.length;
+    const W = COLS * TS;
+    const H = ROWS * TS;
+
+    MAP1.forEach((row, ry) => {
       row.forEach((cell, cx) => {
         const x = cx * TS + TS / 2;
         const y = ry * TS + TS / 2;
-
         if (cell === 1) {
           const p = this.paredes.create(x, y, 'tiles', FRAME_PAREDE);
           p.setScale(SCALE).refreshBody();
@@ -77,9 +79,7 @@ class GameScene extends Phaser.Scene {
     this.jogador.setScale(SCALE).setCollideWorldBounds(true);
     this.physics.add.collider(this.jogador, this.paredes);
 
-    this.overlay = this.add.rectangle(
-      MUNDO_W / 2, MUNDO_H / 2, MUNDO_W, MUNDO_H, 0x000000, 0.6
-    ).setDepth(10);
+    this.overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.6).setDepth(10);
 
     this.textoInteragir = this.add.text(0, 0, '[E] Interagir', {
       fontSize: '12px', fontFamily: 'Courier New',
@@ -91,10 +91,10 @@ class GameScene extends Phaser.Scene {
       fontSize: '14px', fontFamily: 'Courier New', color: '#ff4444',
     }).setScrollFactor(0).setDepth(20);
 
-    this.cameras.main.setBounds(0, 0, MUNDO_W, MUNDO_H);
+    this.cameras.main.setBounds(0, 0, W, H);
     this.cameras.main.startFollow(this.jogador, true, 0.1, 0.1);
     this.cameras.main.setZoom(1);
-    this.physics.world.setBounds(0, 0, MUNDO_W, MUNDO_H);
+    this.physics.world.setBounds(0, 0, W, H);
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.teclaE  = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
@@ -114,9 +114,7 @@ class GameScene extends Phaser.Scene {
       Phaser.Math.Distance.Between(j.x, j.y, this.geradorPos.x, this.geradorPos.y) < TS * 2;
 
     this.textoInteragir.setVisible(perto && !this.energiaOn);
-    if (perto) {
-      this.textoInteragir.setPosition(this.geradorPos.x - 40, this.geradorPos.y - 50);
-    }
+    if (perto) this.textoInteragir.setPosition(this.geradorPos.x - 40, this.geradorPos.y - 50);
 
     if (perto && !this.energiaOn && Phaser.Input.Keyboard.JustDown(this.teclaE)) {
       this.ligarEnergia();
@@ -124,9 +122,7 @@ class GameScene extends Phaser.Scene {
 
     if (this.portaAberta && this.portaPos) {
       const dist = Phaser.Math.Distance.Between(j.x, j.y, this.portaPos.x, this.portaPos.y);
-      if (dist < TS) {
-        this.sinalRestabelecido();
-      }
+      if (dist < TS) this.irParaSala2();
     }
   }
 
@@ -143,50 +139,194 @@ class GameScene extends Phaser.Scene {
 
     let i = 0;
     const textoCentro = this.add.text(
-      MUNDO_W / 2, MUNDO_H / 2, msgs[0],
+      MAP1[0].length * TS / 2, MAP1.length * TS / 2, msgs[0],
       { fontSize: '16px', fontFamily: 'Courier New', color: '#00ff88', backgroundColor: '#000', padding: { x: 10, y: 6 } }
     ).setOrigin(0.5).setDepth(30);
 
     this.time.addEvent({
-      delay: 800,
-      repeat: msgs.length - 1,
+      delay: 800, repeat: msgs.length - 1,
       callback: () => {
         i++;
-        if (i < msgs.length) {
-          textoCentro.setText(msgs[i]);
-        } else {
-          textoCentro.destroy();
-          this.abrirPorta();
-        }
+        if (i < msgs.length) textoCentro.setText(msgs[i]);
+        else { textoCentro.destroy(); this.abrirPorta(); }
       }
     });
 
-    this.tweens.add({
-      targets: this.overlay,
-      alpha: 0,
-      duration: 2000,
-      ease: 'Linear',
-    });
-
+    this.tweens.add({ targets: this.overlay, alpha: 0, duration: 2000 });
     this.textoStatus.setText('ENERGIA: ONLINE').setColor('#00ff88');
   }
 
   abrirPorta() {
     this.portaAberta = true;
-
     const t = this.add.text(
-      MUNDO_W / 2, MUNDO_H / 2 + 60, 'PORTA ABERTA — Va ate a saida',
+      MAP1[0].length * TS / 2, MAP1.length * TS / 2 + 60,
+      'PORTA ABERTA — Va ate a saida',
       { fontSize: '12px', fontFamily: 'Courier New', color: '#00ff88', backgroundColor: '#000', padding: { x: 6, y: 4 } }
     ).setOrigin(0.5).setDepth(20).setScrollFactor(0);
-
     this.time.delayedCall(2000, () => t.destroy());
   }
 
-  sinalRestabelecido() {
+  irParaSala2() {
     if (this.cenaFinal) return;
     this.cenaFinal = true;
     this.jogador.setVelocity(0);
+    this.cameras.main.fadeOut(1000, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start('Sala2Scene');
+    });
+  }
+}
 
+// ═══════════════════════════════
+// SALA 2
+// ═══════════════════════════════
+
+const MAP2 = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,1],
+  [1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1],
+  [1,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+
+class Sala2Scene extends Phaser.Scene {
+  constructor() { super('Sala2Scene'); }
+
+  preload() {
+    this.load.spritesheet('tiles', '/tilemap_packed.png', {
+      frameWidth: TILE, frameHeight: TILE,
+    });
+  }
+
+  create() {
+    this.terminalAtivado = false;
+    this.paredes = this.physics.add.staticGroup();
+    this.terminalPos = null;
+
+    const COLS = MAP2[0].length;
+    const ROWS = MAP2.length;
+    const W = COLS * TS;
+    const H = ROWS * TS;
+
+    MAP2.forEach((row, ry) => {
+      row.forEach((cell, cx) => {
+        const x = cx * TS + TS / 2;
+        const y = ry * TS + TS / 2;
+        if (cell === 1) {
+          const p = this.paredes.create(x, y, 'tiles', FRAME_PAREDE);
+          p.setScale(SCALE).refreshBody();
+        } else if (cell === 4) {
+          // Terminal
+          this.add.image(x, y, 'tiles', FRAME_CHAO).setScale(SCALE);
+          this.add.image(x, y, 'tiles', 25).setScale(SCALE).setTint(0x00aaff);
+          this.terminalPos = { x, y };
+        } else {
+          this.add.image(x, y, 'tiles', FRAME_CHAO).setScale(SCALE);
+        }
+      });
+    });
+
+    // Jogador entra pelo lado esquerdo
+    const startX = 2 * TS + TS / 2;
+    const startY = 7 * TS + TS / 2;
+    this.jogador = this.physics.add.sprite(startX, startY, 'tiles', FRAME_JOGADOR);
+    this.jogador.setScale(SCALE).setCollideWorldBounds(true);
+    this.physics.add.collider(this.jogador, this.paredes);
+
+    this.textoInteragir = this.add.text(0, 0, '[E] Ler terminal', {
+      fontSize: '12px', fontFamily: 'Courier New',
+      color: '#00aaff', backgroundColor: '#000000',
+      padding: { x: 6, y: 4 },
+    }).setDepth(20).setVisible(false);
+
+    this.textoStatus = this.add.text(16, 16, 'ESTACAO 2 — CORREDOR B', {
+      fontSize: '14px', fontFamily: 'Courier New', color: '#00aaff',
+    }).setScrollFactor(0).setDepth(20);
+
+    this.cameras.main.setBounds(0, 0, W, H);
+    this.cameras.main.startFollow(this.jogador, true, 0.1, 0.1);
+    this.cameras.main.setZoom(1);
+    this.cameras.main.fadeIn(800, 0, 0, 0);
+    this.physics.world.setBounds(0, 0, W, H);
+
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.teclaE  = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+  }
+
+  update() {
+    const speed = 150;
+    const j = this.jogador;
+    j.setVelocity(0);
+
+    if (this.cursors.left.isDown)       { j.setVelocityX(-speed); j.setFlipX(true); }
+    else if (this.cursors.right.isDown) { j.setVelocityX(speed);  j.setFlipX(false); }
+    else if (this.cursors.up.isDown)    { j.setVelocityY(-speed); }
+    else if (this.cursors.down.isDown)  { j.setVelocityY(speed); }
+
+    const perto = this.terminalPos &&
+      Phaser.Math.Distance.Between(j.x, j.y, this.terminalPos.x, this.terminalPos.y) < TS * 2;
+
+    this.textoInteragir.setVisible(perto && !this.terminalAtivado);
+    if (perto) this.textoInteragir.setPosition(this.terminalPos.x - 50, this.terminalPos.y - 50);
+
+    if (perto && !this.terminalAtivado && Phaser.Input.Keyboard.JustDown(this.teclaE)) {
+      this.lerTerminal();
+    }
+  }
+
+  lerTerminal() {
+    this.terminalAtivado = true;
+    this.textoInteragir.setVisible(false);
+    this.jogador.setVelocity(0);
+
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+
+    // Overlay escuro
+    const fundo = this.add.rectangle(cx, cy, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.85)
+      .setScrollFactor(0).setDepth(40);
+
+    const log = [
+      '> LOG #0001',
+      '',
+      'SINAL RECEBIDO.',
+      '',
+      'ORIGEM:',
+      'DESCONHECIDA',
+      '',
+      'COORDENADAS:',
+      'CORROMPIDAS',
+      '',
+      '[FECHAR — E]',
+    ];
+
+    const texto = this.add.text(cx, cy, log.join('\n'), {
+      fontSize: '14px', fontFamily: 'Courier New', color: '#00ff88',
+      lineSpacing: 6,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(41);
+
+    // Aperta E de novo pra fechar
+    const fechar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.time.delayedCall(500, () => {
+      fechar.once('down', () => {
+        fundo.destroy();
+        texto.destroy();
+        this.irParaFinal();
+      });
+    });
+  }
+
+  irParaFinal() {
     this.cameras.main.fadeOut(1500, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('FinalScene');
@@ -194,7 +334,9 @@ class GameScene extends Phaser.Scene {
   }
 }
 
-// ← GameScene fechada aqui
+// ═══════════════════════════════
+// CENA FINAL
+// ═══════════════════════════════
 
 class FinalScene extends Phaser.Scene {
   constructor() { super('FinalScene'); }
@@ -221,6 +363,15 @@ class FinalScene extends Phaser.Scene {
   }
 }
 
+// ═══════════════════════════════
+// CONFIG
+// ═══════════════════════════════
+
+const COLS = MAP1[0].length;
+const ROWS = MAP1.length;
+const MUNDO_W = COLS * TS;
+const MUNDO_H = ROWS * TS;
+
 const config = {
   type: Phaser.AUTO,
   width: MUNDO_W,
@@ -230,7 +381,7 @@ const config = {
     default: 'arcade',
     arcade: { gravity: { y: 0 }, debug: false },
   },
-  scene: [GameScene, FinalScene],
+  scene: [GameScene, Sala2Scene, FinalScene],
 };
 
 new Phaser.Game(config);
